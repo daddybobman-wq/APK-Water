@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5f8a">
+<title>Склад воды</title>
+<style>
+:root{
+  --bg:#f1f4f6;--card:#fff;--ink:#14232c;--muted:#6b7c86;--line:#dbe3e8;--field:#f6f8fa;
+  --blue:#0b5f8a;--blue-2:#e3f0f7;--ok:#1d7a4a;--ok-2:#e2f4ea;--bad:#c0322a;--bad-2:#fbe4e2;
+  --nav:64px;--bar:72px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;
+    --bg:#0e171d;--card:#17232b;--ink:#e9f0f4;--muted:#93a6b1;--line:#2a3a45;--field:#1f2d36;
+    --blue:#5db3e3;--blue-2:#163646;--ok:#6fd49c;--ok-2:#173a29;--bad:#ff8a80;--bad-2:#4a1f1c;}
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0e171d;--card:#17232b;--ink:#e9f0f4;--muted:#93a6b1;--line:#2a3a45;--field:#1f2d36;
+  --blue:#5db3e3;--blue-2:#163646;--ok:#6fd49c;--ok-2:#173a29;--bad:#ff8a80;--bad-2:#4a1f1c;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:500 17px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:calc(var(--nav) + var(--bar) + 24px + env(safe-area-inset-bottom,0px))}
+body.nobar{padding-bottom:calc(var(--nav) + 24px + env(safe-area-inset-bottom,0px))}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+.wrap{max-width:640px;margin:0 auto;padding:0 12px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:16px 4px 10px;gap:10px}
+.top .d{display:block;margin-top:2px}
+.top h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em}
+.top .d{color:var(--muted);font-size:15px}
+.sec{font-size:13px;font-weight:700;color:var(--muted);margin:18px 4px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec .num{background:var(--blue);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-grid;place-items:center;font-size:13px;margin-right:6px}
+.card{background:var(--card);border-radius:14px;padding:12px;margin-bottom:8px}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);font-size:15px;padding:14px 4px;text-align:center}
+
+/* поля */
+.in{width:100%;height:50px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);
+  font-size:21px;font-weight:700;text-align:center;padding:0 6px}
+.in::placeholder{color:var(--muted);opacity:.55;font-weight:600}
+.in:focus{border-color:var(--blue);background:var(--card)}
+.in.txt{text-align:left;font-size:16px;font-weight:600;padding:0 12px}
+.lab{display:block;font-size:12px;color:var(--muted);font-weight:600;text-align:center;margin-bottom:3px}
+
+/* кнопки */
+.btn{height:48px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font-weight:700;font-size:16px;padding:0 16px}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.del{color:var(--bad);border-color:transparent;background:var(--bad-2)}
+.btn.sm{height:38px;font-size:14px;padding:0 12px;border-radius:10px}
+.btn.ghost{border-color:transparent;background:var(--blue-2);color:var(--blue)}
+.btn.full{width:100%}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* переключатель */
+.seg{display:flex;background:var(--card);border-radius:12px;padding:4px;gap:4px;margin:4px 0 8px}
+.seg button{flex:1;height:40px;border:0;border-radius:9px;background:transparent;font-weight:700;color:var(--muted);font-size:15px}
+.seg button.on{background:var(--blue-2);color:var(--blue)}
+
+/* ===== склад 1 ===== */
+.sku{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center}
+.sku .nm{font-weight:800;font-size:17px}
+.sku .nm small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:1px}
+.sku .tot{text-align:right;line-height:1}
+.sku .tot b{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.sku .tot b.z{color:var(--muted);opacity:.4}
+.sku .tot span{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+.sku .ins{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sku .ins.c4{grid-template-columns:repeat(4,1fr)}
+.sku .note{grid-column:1/-1;font-size:14px;font-weight:700;display:flex;gap:10px;flex-wrap:wrap}
+.sku .note:empty{display:none}
+.card.warn{box-shadow:inset 0 0 0 2px var(--bad)}
+.tag{border-radius:6px;padding:2px 8px;font-size:14px;font-weight:800}
+.tag.ok{background:var(--ok-2);color:var(--ok)}
+.tag.bad{background:var(--bad-2);color:var(--bad)}
+.tag.ret{background:var(--blue-2);color:var(--blue)}
+.banner{background:var(--blue-2);color:var(--blue);border-radius:12px;padding:10px 12px;font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+
+/* ===== склад 2 ===== */
+.drivers{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.drv{height:52px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font-weight:700;font-size:15px;text-align:left;padding:0 12px;
+  display:flex;justify-content:space-between;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.drv span{overflow:hidden;text-overflow:ellipsis}
+.drv i{font-style:normal;color:var(--ok);font-size:14px}
+.drv.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.drv.on i{color:#fff}
+.calc .cr{display:grid;grid-template-columns:1fr 26px 1fr 64px;gap:6px;align-items:center;margin-bottom:6px}
+.calc .x{text-align:center;color:var(--muted);font-weight:800;font-size:18px}
+.calc .eq{text-align:right;font-weight:800;color:var(--muted);font-size:16px}
+.calc .eq.has{color:var(--ink)}
+.calc .lr{display:grid;grid-template-columns:1fr 26px 1fr 64px;gap:6px;align-items:center}
+.calc .lr .t{grid-column:2/4;font-size:14px;color:var(--muted);font-weight:600;padding-left:4px}
+.calc .foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.calc .foot b{font-size:28px;font-weight:800}
+.retg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.retg .lab{text-align:left}
+.big2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.big2 .card{margin:0;text-align:center}
+.big2 b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.big2 small{font-size:13px;color:var(--muted);font-weight:600}
+.big2 .tag{display:inline-block;margin-top:4px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.trip{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 2px;border-bottom:1px solid var(--line);align-items:center}
+.trip:last-child{border-bottom:0}
+.trip .w{font-weight:800}
+.trip .w small{color:var(--muted);font-weight:600;font-size:13px;margin-left:6px}
+.trip .n{text-align:right;font-weight:800;font-size:16px;white-space:nowrap}
+.trip .n span{color:var(--muted);font-weight:600;font-size:13px}
+.trip .s{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.trip .s.r{color:var(--blue);font-weight:700}
+.trip .ed{border:0;background:var(--blue-2);color:var(--blue);border-radius:8px;height:34px;padding:0 10px;font-weight:700;font-size:14px}
+.trip.editing{display:block;background:var(--field);border-radius:12px;padding:10px;margin:6px 0;border:0}
+.sumrow{display:flex;justify-content:space-between;font-weight:800;padding-top:10px;margin-top:4px;border-top:2px solid var(--line);font-size:15px}
+
+/* ===== история ===== */
+.h .hh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.h .hh b{font-size:17px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:7px 2px;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:12px;color:var(--muted);font-weight:600}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+td.b{font-weight:800}
+td.ok{color:var(--ok);font-weight:800} td.bad{color:var(--bad);font-weight:800}
+pre.sum{white-space:pre-wrap;margin:0;font:600 13px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--field);border-radius:10px;padding:10px}
+
+/* ===== нижняя панель действия и навигация ===== */
+.bar{position:fixed;left:0;right:0;bottom:calc(var(--nav) + env(safe-area-inset-bottom,0px));z-index:8;padding:8px 12px;background:var(--bg)}
+.bar[hidden]{display:none}
+.bar .in2{max-width:640px;margin:0 auto;background:var(--card);border-radius:16px;padding:8px 8px 8px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.12)}
+.bar .info{flex:1;min-width:0;font-size:14px;color:var(--muted);line-height:1.25}
+.bar .info b{color:var(--ink);font-size:17px}
+.bar .info .who{color:var(--ink);font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .info .who.need{color:var(--bad)}
+.bar .btn{height:52px;flex-shrink:0;font-size:16px;padding:0 20px}
+.bar input[type=date]{height:40px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);font-size:15px;font-weight:700;padding:0 8px;max-width:150px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav .in2{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);height:var(--nav)}
+nav button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:12px;font-weight:700}
+nav button svg{width:24px;height:24px}
+nav button.on{color:var(--blue)}
+[hidden]{display:none!important}
+
+/* выбор числа */
+.pick{width:100%;height:50px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);font-size:21px;font-weight:700}
+.pick.z{color:var(--muted);opacity:.55}
+.pick.act{border-color:var(--blue);background:var(--blue-2);color:var(--blue);opacity:1}
+.sheet{position:fixed;inset:0;background:rgba(8,16,22,.45);display:flex;align-items:flex-end;justify-content:center;z-index:25}
+.sbox{background:var(--card);border-radius:20px 20px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));width:100%;max-width:560px}
+.shead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+.shead b{font-size:17px}
+.shead small{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.sgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.sgrid button{height:46px;border:0;border-radius:10px;background:var(--field);font-size:18px;font-weight:700}
+.sgrid button.cur{background:var(--blue);color:#fff}
+.sgrid button.zero{background:var(--bad-2);color:var(--bad)}
+.sother{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+.clr{border:0;background:transparent;color:var(--bad);font-weight:700;font-size:14px;padding:4px 0;margin-left:auto}
+/* выбранный водитель */
+.chosen{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--blue);color:#fff;border-radius:14px;padding:10px 10px 10px 14px}
+.chosen small{display:block;font-size:12px;opacity:.8;font-weight:600}
+.chosen b{font-size:19px;font-weight:800}
+.chosen .btn{background:rgba(255,255,255,.18);border:0;color:#fff;height:40px}
+/* строка приезда */
+.trip{cursor:pointer}
+.trip .go{color:var(--muted);font-size:22px;font-weight:700;line-height:1}
+/* карточка приезда */
+.tbox .who{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.tbox .meta{color:var(--muted);font-size:15px;font-weight:600;margin:4px 0 14px}
+.tnums{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tnums div{background:var(--field);border-radius:14px;padding:12px 8px;text-align:center}
+.tnums small{display:block;font-size:14px;font-weight:700;color:var(--muted)}
+.tnums b{display:block;font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1.05}
+.tnums .e b{color:var(--blue)}
+.tf{background:var(--field);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:18px;font-weight:700;text-align:center}
+.tret{margin-top:10px}
+.tret .h{font-size:14px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.tret div.l{display:flex;justify-content:space-between;font-size:18px;font-weight:700;padding:6px 0;border-bottom:1px solid var(--line)}
+.tret div.l:last-child{border-bottom:0}
+.tret div.l span{color:var(--muted);font-weight:600;font-size:15px}
+/* дата */
+.datebar{display:grid;grid-template-columns:48px 1fr 48px;gap:6px;margin-bottom:4px}
+.datebar .arr{height:52px;border:0;border-radius:12px;background:var(--card);font-size:24px;font-weight:700;color:var(--blue)}
+.datebar .cur{height:52px;border:0;border-radius:12px;background:var(--card);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;gap:8px}
+.datebar .cur svg{width:20px;height:20px;color:var(--blue)}
+.past{background:#fff1d6;color:#7a4b00;border-radius:12px;padding:8px 12px;font-weight:700;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0 2px}
+:root[data-theme="dark"] .past{background:#3b2a0b;color:#ffcf7a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .past{background:#3b2a0b;color:#ffcf7a}}
+.dbtn{height:40px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);font-size:15px;font-weight:800;padding:0 10px;display:inline-flex;align-items:center;gap:6px}
+.dbtn svg{width:16px;height:16px;color:var(--blue)}
+/* календарь */
+.cal-h{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;margin-bottom:8px}
+.cal-h b{text-align:center;font-size:18px;text-transform:capitalize}
+.cal-h button{height:44px;border:0;border-radius:10px;background:var(--field);font-size:22px;font-weight:700;color:var(--blue)}
+.cal-w,.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-w span{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:4px 0}
+.cal-w span:nth-child(n+6){color:var(--bad)}
+.cal-g button{height:46px;border:0;border-radius:10px;background:var(--field);font-size:17px;font-weight:700;position:relative}
+.cal-g button.out{visibility:hidden}
+.cal-g button.today{box-shadow:inset 0 0 0 2px var(--blue)}
+.cal-g button.sel{background:var(--blue);color:#fff}
+.cal-g button.fut{opacity:.35}
+.cal-g button i{position:absolute;left:50%;bottom:5px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--ok)}
+.cal-g button.sel i{background:#fff}
+/* окно и уведомление */
+.modal{position:fixed;inset:0;background:rgba(8,16,22,.5);display:flex;align-items:flex-end;justify-content:center;z-index:30;padding:12px}
+.modal[hidden]{display:none}
+.mbox{background:var(--card);border-radius:18px;padding:18px 16px calc(14px + env(safe-area-inset-bottom,0px));width:100%;max-width:520px}
+.mbox p{margin:0 0 14px;font-size:17px;font-weight:700}
+.mbox textarea{width:100%;min-height:110px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);font:13px ui-monospace,Menlo,monospace;padding:8px;margin-bottom:12px}
+.mbox .row .btn{flex:1;height:52px}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ===================== СКЛАД 1 ===================== -->
+<section id="v-w1">
+  <div class="top"><div><h1>Склад 1</h1><span class="d" id="d1"></span></div><button class="btn sm del" id="w1-clear-all">Очистить всё</button></div>
+  <div id="w1-banner"></div>
+  <div class="seg" id="w1-mode">
+    <button data-m="0">Только подсчёт</button>
+    <button data-m="1">Сверка с 1С</button>
+  </div>
+  <div id="w1-list"></div>
+</section>
+
+<!-- ===================== СКЛАД 2 ===================== -->
+<section id="v-w2" hidden>
+  <div class="top"><div><h1>Склад 2 · 18,9 л</h1></div></div>
+  <div class="datebar">
+    <button class="arr" id="day-prev" aria-label="Предыдущий день">‹</button>
+    <button class="cur" id="day-cur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="day-label"></span></button>
+    <button class="arr" id="day-next" aria-label="Следующий день">›</button>
+  </div>
+  <div id="day-past"></div>
+
+  <div class="sec"><span><span class="num">1</span>Водитель</span></div>
+  <div class="drivers" id="drivers"></div>
+
+  <div class="sec"><span><span class="num">2</span>Пустые бутыли</span><button class="btn sm ghost" id="calc-clear">Очистить</button></div>
+  <div class="card calc" id="calc"></div>
+
+  <div class="sec"><span><span class="num">3</span>Полные бутыли</span></div>
+  <div class="card"><input class="in" type="number" inputmode="numeric" min="0" id="full" placeholder="0" aria-label="Полные бутыли"></div>
+
+  <div class="sec"><span><span class="num">4</span>Мелкая тара на склад 1</span><button class="btn sm ghost" id="ret-toggle">Добавить</button></div>
+  <div class="card" id="ret-card" hidden>
+    <div class="muted" style="font-size:14px">В упаковках</div>
+    <div class="retg" id="ret"></div>
+  </div>
+
+  <div class="sec"><span id="trips-title">Сегодня приехали</span><span id="trips-count"></span></div>
+  <div class="card" id="trips"></div>
+
+  <div class="sec"><span id="bal-title">Остатки 18,9 л</span></div>
+  <div class="big2">
+    <div class="card"><small>Пустых должно быть</small><b id="o-empty">0</b><span id="o-empty-d"></span></div>
+    <div class="card"><small>Полных сейчас</small><b id="o-full">0</b><span id="o-full-d"></span></div>
+  </div>
+  <div class="card" style="margin-top:8px">
+    <div class="g3">
+      <div><span class="lab">Пустых утром</span><input class="in" type="number" inputmode="numeric" min="0" data-w2="emptyOpen" placeholder="0"></div>
+      <div><span class="lab">Полных утром</span><input class="in" type="number" inputmode="numeric" min="0" data-w2="fullOpen" placeholder="0"></div>
+      <div><span class="lab">Отгружено</span><input class="in" type="number" inputmode="numeric" min="0" data-w2="fullShipped" placeholder="0"></div>
+    </div>
+    <div class="g2" id="w2-onec" style="margin-top:8px">
+      <div><span class="lab">Пустых по 1С</span><input class="in" type="number" inputmode="numeric" min="0" data-w2="emptyOneC" placeholder="—"></div>
+      <div><span class="lab">Полных по 1С</span><input class="in" type="number" inputmode="numeric" min="0" data-w2="fullOneC" placeholder="—"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ИСТОРИЯ ===================== -->
+<section id="v-hist" hidden>
+  <div class="top"><h1>История</h1></div>
+  <div class="seg" id="h-mode">
+    <button data-h="w1">Пересчёты склада 1</button>
+    <button data-h="shift">Смены</button>
+  </div>
+  <div id="h-w1"></div>
+  <div id="h-shift" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px"><b id="cur-shift">Текущая смена</b><button class="btn sm ghost" id="copy">Скопировать</button></div>
+      <pre class="sum" id="sum"></pre>
+      <button class="btn pri full" id="close-shift" style="margin-top:10px">Закрыть смену</button>
+      <div class="muted" style="font-size:13px;margin-top:6px">Сохранит сводку и перенесёт остатки 18,9 л на утро следующего дня. Приезды остаются в журнале по датам.</div>
+    </div>
+    <div id="shifts"></div>
+  </div>
+</section>
+
+<!-- ===================== НАСТРОЙКИ ===================== -->
+<section id="v-set" hidden>
+  <div class="top"><h1>Настройки</h1></div>
+  <div class="sec"><span>Товары склада 1</span></div>
+  <div id="skus"></div>
+  <button class="btn ghost full" id="add-sku">+ Добавить товар</button>
+
+  <div class="sec"><span>Экспедиторы</span></div>
+  <div class="card">
+    <div class="muted" style="font-size:14px;margin-bottom:6px">По одному на строку</div>
+    <textarea class="in txt" id="exps" style="height:auto;min-height:220px;padding:10px 12px;line-height:1.6"></textarea>
+  </div>
+
+  <div class="sec"><span>Данные</span></div>
+  <div class="card">
+    <div class="muted" style="font-size:14px;margin-bottom:10px">Хранятся только на этом телефоне. Перед сменой телефона скопируйте резервную копию.</div>
+    <div class="row">
+      <button class="btn sm ghost" id="export">Скопировать копию</button>
+      <button class="btn sm ghost" id="import">Восстановить</button>
+      <button class="btn sm del" id="reset">Сбросить всё</button>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- панель действия -->
+<div class="bar" id="bar-w1"><div class="in2">
+  <div class="info"><input type="hidden" id="w1-date"><button class="dbtn" id="w1-date-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span></span></button><div id="w1-info" style="margin-top:3px"></div></div>
+  <button class="btn pri" id="w1-save">Записать</button>
+</div></div>
+<div class="bar" id="bar-w2" hidden><div class="in2">
+  <div class="info" id="w2-info"></div>
+  <button class="btn pri" id="w2-save">Записать</button>
+</div></div>
+
+<nav><div class="in2" id="nav">
+  <button data-v="w1" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8l9-5 9 5v11l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v11"/></svg>Склад 1</button>
+  <button data-v="w2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 2h6v3l2 2v14a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7l2-2z"/><path d="M7 12h10"/></svg>Склад 2</button>
+  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>История</button>
+  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Настройки</button>
+</div></nav>
+
+<div class="modal" id="modal" hidden><div class="mbox" role="dialog" aria-modal="true">
+  <p id="m-msg"></p>
+  <textarea id="m-text" hidden placeholder="Вставьте текст копии"></textarea>
+  <div class="row"><button class="btn" id="m-no">Отмена</button><button class="btn pri" id="m-yes">Да</button></div>
+</div></div>
+<div class="sheet" id="sheet" hidden><div class="sbox" role="dialog" aria-modal="true">
+  <div class="shead"><div><b id="sh-title"></b><small id="sh-sub"></small></div><button class="btn sm" id="sh-close">Закрыть</button></div>
+  <div class="sgrid" id="sh-grid"></div>
+  <div class="sother"><input class="in" type="number" inputmode="numeric" min="0" id="sh-in" placeholder="Другое число"><button class="btn pri" id="sh-ok">OK</button></div>
+</div></div>
+<div class="sheet" id="tsheet" hidden><div class="sbox tbox" role="dialog" aria-modal="true" id="tbody"></div></div>
+<div class="sheet" id="csheet" hidden><div class="sbox" role="dialog" aria-modal="true">
+  <div class="shead"><b id="cal-title">Выберите дату</b><button class="btn sm" id="cal-close">Закрыть</button></div>
+  <div class="cal-h"><button id="cal-prev" aria-label="Предыдущий месяц">‹</button><b id="cal-month"></b><button id="cal-next" aria-label="Следующий месяц">›</button></div>
+  <div class="cal-w"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+  <div class="cal-g" id="cal-grid"></div>
+  <div class="row" style="margin-top:10px"><button class="btn ghost" id="cal-today" style="flex:1">Сегодня</button><button class="btn ghost" id="cal-yest" style="flex:1">Вчера</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// --- для Android-приложения: копирование через систему ---
+if(window.AndroidBridge){ try{ Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:t=>{ window.AndroidBridge.copy(String(t)); return Promise.resolve(); }}}); }catch(e){} }
+const KEY = 'sklad-vody-v1', VER = 4;
+const defaultSkus = [
+  {name:'0,25 л',ppr:24,rpp:6,bpp:12},
+  {name:'0,5 л газ.',ppr:22,rpp:5,bpp:12},{name:'0,5 л негаз.',ppr:22,rpp:5,bpp:12},
+  {name:'1 л газ.',ppr:25,rpp:5,bpp:6},{name:'1 л негаз.',ppr:25,rpp:5,bpp:6},
+  {name:'1,5 л газ.',ppr:19,rpp:4,bpp:6},{name:'1,5 л негаз.',ppr:19,rpp:4,bpp:6},
+  {name:'5 л негаз.',ppr:17,rpp:4,bpp:2},{name:'5 л Калипсик',ppr:17,rpp:4,bpp:2},
+];
+const defaultExps = ['Аутов Марлен Сергеевич','Бекмырзаұлы Дастан','Иклас Нуржан Бауыржанұлы','Казиев Куаныш Бахтыгереевич',
+  'Куздеубаев Елдар Болатханович','Куренкеев Габиден Тузелбекович','Мухтар Ерсултан Сакенұлы','Тұрайхан Оспан Мұратұлы',
+  'Усинов Руслан Имамусаевич','Қожа Айдос Серікұлы'];
+
+let uid = 1;
+const mkSku = s => ({id:uid++, name:s.name, ppr:s.ppr, rpp:s.rpp, bpp:s.bpp, pallets:'', rows:'', packs:'', oneC:''});
+const mkCalc = () => ({rows:[{a:'',b:''},{a:'',b:''},{a:'',b:''}], loose:''});
+const freshW2 = (eo='', fo='') => ({emptyOpen:eo, emptyOneC:'', fullOpen:fo, fullShipped:'', fullOneC:'',
+  calcEmpty:mkCalc(), calcRecount:mkCalc(), retDraft:{}, fullDraft:'', driver:'', deliveries:[], days:{}, viewDate:''});
+let state = {ver:VER, skus:defaultSkus.map(mkSku), exps:defaultExps.slice(), oneC:false,
+  w2:freshW2(), w1History:[], history:[]};
+
+// ---------- утилиты ----------
+const $ = id => document.getElementById(id);
+const n = v => { const x = parseInt(v,10); return isNaN(x)||x<0 ? 0 : x; };
+const has = v => v!=='' && v!=null && !isNaN(parseInt(v,10));
+const fmt = x => x.toLocaleString('ru-RU');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nowTime = () => new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+const isoToday = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const ruDate = iso => { const [y,m,d]=String(iso).split('-'); return `${d}.${m}.${y}`; };
+const shortName = f => { const p=f.trim().split(/\s+/); return p[0]+(p[1]?' '+p[1][0]+'.':'')+(p[2]?p[2][0]+'.':''); };
+const sign = d => (d>0?'+':'')+fmt(d);
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove('show'),1700); }
+function ask(msg, yes='Удалить', o={}){
+  return new Promise(res=>{
+    const m=$('modal'), ta=$('m-text'), y=$('m-yes'), no=$('m-no');
+    $('m-msg').textContent=msg; y.textContent=yes; y.className='btn '+(o.safe?'pri':'del');
+    ta.hidden=!o.input; ta.value=''; m.hidden=false; (o.input?ta:y).focus();
+    const done=v=>{ m.hidden=true; y.onclick=no.onclick=m.onclick=null; res(v); };
+    y.onclick=()=>done(o.input?ta.value:true); no.onclick=()=>done(o.input?null:false);
+    m.onclick=e=>{ if(e.target===m) done(o.input?null:false); };
+  });
+}
+
+// ---------- хранение ----------
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY); if(!raw) return;
+    const s = JSON.parse(raw); if(!s || !s.skus || !s.w2) return;
+    state = s;
+    if(!state.ver || state.ver<2) state.skus = defaultSkus.map(mkSku);
+    if(state.ver<3){
+      const o=state.w2, w=freshW2(o.emptyOpen||'', o.fullOpen||'');
+      ['emptyOneC','fullShipped','fullOneC'].forEach(k=>w[k]=o[k]||'');
+      w.deliveries=(o.deliveries||[]).map(d=>({id:d.id,time:d.time,name:d.name,empty:d.empty,full:d.full,ret:{}}));
+      state.w2=w;
+    }
+    const w=state.w2, f=freshW2();
+    Object.keys(f).forEach(k=>{ if(w[k]===undefined) w[k]=f[k]; });
+    w.deliveries.forEach(d=>{ if(!d.ret) d.ret={}; if(!d.date) d.date=isoToday(); });
+    if(!w.days || typeof w.days!=='object') w.days={};
+    if(!Object.keys(w.days).length && ['emptyOpen','fullOpen','fullShipped','emptyOneC','fullOneC'].some(k=>has(w[k])))
+      w.days[isoToday()] = {emptyOpen:w.emptyOpen||'',fullOpen:w.fullOpen||'',fullShipped:w.fullShipped||'',emptyOneC:w.emptyOneC||'',fullOneC:w.fullOneC||''};
+    w.viewDate = isoToday();
+    if(!Array.isArray(state.exps) || !state.exps.length) state.exps = defaultExps.slice();
+    if(state.oneC===undefined) state.oneC = state.skus.some(s=>has(s.oneC));
+    state.w1History = state.w1History||[]; state.history = state.history||[];
+    state.ver = VER;
+    uid = Math.max(1,...state.skus.map(x=>x.id||0),...w.deliveries.map(x=>x.id||0),...state.w1History.map(x=>x.id||0))+1;
+  }catch(e){}
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+// ---------- расчёты ----------
+function skuCalc(s){
+  const bpp=n(s.bpp), perRow=n(s.ppr)*bpp, perPal=perRow*n(s.rpp);
+  const bottles=n(s.pallets)*perPal + n(s.rows)*perRow + n(s.packs)*bpp;
+  return {bottles, perRow, perPal, diff: state.oneC && has(s.oneC) ? bottles-n(s.oneC) : null};
+}
+const vd = () => state.w2.viewDate || isoToday();
+const tripsOf = d => state.w2.deliveries.filter(x=>x.date===d);
+function day(d=vd()){ const D=state.w2.days; if(!D[d]) D[d]={emptyOpen:'',fullOpen:'',fullShipped:'',emptyOneC:'',fullOneC:''}; return D[d]; }
+function addDays(iso,k){ const [y,m,dd]=iso.split('-').map(Number); const t=new Date(y,m-1,dd+k); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; }
+function dayName(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'}); }
+function dayShort(iso){ const t=isoToday(); return iso===t?'сегодня':iso===addDays(t,-1)?'вчера':dayName(iso); }
+const retToday = id => tripsOf(isoToday()).reduce((a,d)=>a+n((d.ret||{})[id]),0);
+const calcTotal = c => c.rows.reduce((a,r)=>a+n(r.a)*n(r.b),0)+n(c.loose);
+function calcFormula(c){
+  const p=c.rows.filter(r=>has(r.a)||has(r.b)).map(r=>`${n(r.a)}×${n(r.b)}`);
+  if(has(c.loose)) p.push(String(n(c.loose)));
+  return p.length>1 || c.rows.some(r=>has(r.a)&&has(r.b)) ? p.join(' + ')+' = '+calcTotal(c) : '';
+}
+function w2Calc(){
+  const w=day(), T=tripsOf(vd());
+  const eIn=T.reduce((a,d)=>a+n(d.empty),0), fIn=T.reduce((a,d)=>a+n(d.full),0);
+  const eExp=n(w.emptyOpen)+eIn, fNow=n(w.fullOpen)+fIn-n(w.fullShipped);
+  return {eIn,fIn,eExp,fNow,
+    eDiff: state.oneC&&has(w.emptyOneC) ? eExp-n(w.emptyOneC) : null,
+    fDiff: state.oneC&&has(w.fullOneC) ? fNow-n(w.fullOneC) : null};
+}
+const tag = (d,u='') => d===null ? '' : d===0 ? '<span class="tag ok">✓ сходится с 1С</span>' : `<span class="tag bad">1С: ${sign(d)}${u}</span>`;
+const retText = r => state.skus.filter(s=>n(r[s.id])>0).map(s=>`${s.name} — ${n(r[s.id])} уп.`).join(', ');
+
+// =================== СКЛАД 1 ===================
+const PK = [['pallets','Паллет'],['rows','Рядов'],['packs','Упаковок']];
+let w1Edit = null; // id записи истории, которую исправляем
+function renderW1(){
+  document.querySelectorAll('#w1-mode button').forEach(b=>b.classList.toggle('on', (b.dataset.m==='1')===state.oneC));
+  const c4 = state.oneC ? ' c4' : '';
+  $('w1-list').innerHTML = state.skus.map(s=>{ const c=skuCalc(s);
+    return `<div class="card" data-sku="${s.id}"><div class="sku">
+      <div class="nm">${esc(s.name)}<small>паллета ${c.perPal} · ряд ${c.perRow} · уп. ${n(s.bpp)}</small></div>
+      <div class="tot"><b data-o="bt">0</b><span>бутылок</span></div>
+      <div class="ins${c4}">
+        ${PK.map(([k,l])=>`<div><span class="lab">${l}</span><button class="pick${n(s[k])?'':' z'}" data-p="${k}">${n(s[k])}</button></div>`).join('')}
+        ${state.oneC?`<div><span class="lab">1С, бут.</span><input class="in" type="number" inputmode="numeric" min="0" data-k="oneC" value="${esc(s.oneC)}" placeholder="—"></div>`:''}
+      </div>
+      <div class="note" data-o="note"></div>
+    </div></div>`; }).join('');
+  setW1Date($('w1-date').value || isoToday());
+  renderBanner(); recalcW1();
+}
+function renderBanner(){
+  const h = w1Edit && state.w1History.find(x=>x.id===w1Edit);
+  $('w1-banner').innerHTML = h ? `<div class="banner"><span>Исправляете пересчёт за ${ruDate(h.date)}</span><button class="btn sm" id="w1-cancel">Отмена</button></div>` : '';
+  $('w1-save').textContent = h ? 'Сохранить' : 'Записать';
+}
+function recalcW1(){
+  let filled=0, bad=0;
+  state.skus.forEach(s=>{
+    const c=skuCalc(s), r=retToday(s.id), card=document.querySelector(`[data-sku="${s.id}"]`);
+    if(c.bottles) filled++; if(c.diff) bad++;
+    if(!card) return;
+    const b=card.querySelector('[data-o="bt"]'); b.textContent=fmt(c.bottles); b.classList.toggle('z',!c.bottles);
+    const filledCard = c.bottles || has(s.oneC);
+    card.querySelector('[data-o="note"]').innerHTML = tag(c.diff,' бут.') + (r?`<span class="tag ret">↩ возврат сегодня +${r} уп.</span>`:'') + (filledCard?'<button class="clr" data-clr>✕ Очистить</button>':'');
+    card.classList.toggle('warn', !!c.diff);
+  });
+  $('w1-info').innerHTML = `Заполнено <b>${filled}</b> из ${state.skus.length}${bad?` · <span style="color:var(--bad);font-weight:800">расхождений ${bad}</span>`:''}`;
+}
+$('w1-mode').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; state.oneC = b.dataset.m==='1'; save(); renderW1(); });
+$('w1-list').addEventListener('input', e=>{
+  const card=e.target.closest('[data-sku]'); if(!card || !e.target.dataset.k) return;
+  const s=state.skus.find(x=>x.id==card.dataset.sku); s[e.target.dataset.k]=e.target.value; save(); recalcW1();
+});
+// выбор числа в стиле календаря
+let pk = null; // {id, k}
+function openPick(id, k){
+  const s = state.skus.find(x=>x.id==id); if(!s) return;
+  pk = {id, k};
+  const lab = PK.find(x=>x[0]===k)[1], cur = n(s[k]);
+  const top = 50;
+  $('sh-title').textContent = `${s.name} — ${lab.toLowerCase()}`;
+  $('sh-sub').textContent = k==='rows' ? `в паллете ${n(s.rpp)} рядов` : k==='packs' ? `в ряду ${n(s.ppr)} упаковок` : 'полных паллет';
+  let h=''; for(let i=0;i<=top;i++) h += `<button data-v="${i}" class="${i===cur?'cur':''}${i===0&&i!==cur?' zero':''}">${i}</button>`;
+  $('sh-grid').innerHTML = h;
+  $('sh-in').value = '';
+  $('sheet').hidden = false;
+  document.querySelectorAll('.pick.act').forEach(b=>b.classList.remove('act'));
+  const btn = document.querySelector(`[data-sku="${id}"] [data-p="${k}"]`); if(btn) btn.classList.add('act');
+}
+function closePick(){ $('sheet').hidden = true; document.querySelectorAll('.pick.act').forEach(b=>b.classList.remove('act')); pk = null; }
+function setPick(v){
+  if(!pk) return;
+  const s = state.skus.find(x=>x.id==pk.id); s[pk.k] = v ? String(v) : '';
+  const btn = document.querySelector(`[data-sku="${pk.id}"] [data-p="${pk.k}"]`);
+  if(btn){ btn.textContent = v; btn.classList.toggle('z', !v); }
+  save(); recalcW1(); closePick();
+}
+$('sh-grid').addEventListener('click', e=>{ const b=e.target.closest('[data-v]'); if(b) setPick(+b.dataset.v); });
+$('sh-ok').addEventListener('click', ()=>{ if($('sh-in').value!=='') setPick(n($('sh-in').value)); else closePick(); });
+$('sh-in').addEventListener('keydown', e=>{ if(e.key==='Enter') $('sh-ok').click(); });
+$('sh-close').addEventListener('click', closePick);
+$('sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') closePick(); });
+$('w1-list').addEventListener('click', async e=>{
+  const p = e.target.closest('[data-p]'), card = e.target.closest('[data-sku]');
+  if(p && card){ openPick(card.dataset.sku, p.dataset.p); return; }
+  if(e.target.closest('[data-clr]') && card){
+    const s = state.skus.find(x=>x.id==card.dataset.sku);
+    s.pallets=s.rows=s.packs=s.oneC=''; save(); renderW1(); toast(`${s.name}: очищено`);
+  }
+});
+$('w1-clear-all').addEventListener('click', async ()=>{
+  if(!state.skus.some(s=>s.pallets||s.rows||s.packs||s.oneC)){ toast('Поля уже пустые'); return; }
+  if(await ask('Очистить все значения на складе 1?','Очистить всё')){
+    state.skus.forEach(s=>{ s.pallets=s.rows=s.packs=s.oneC=''; }); w1Edit=null; save(); renderW1(); toast('Всё очищено');
+  }
+});
+$('w1-banner').addEventListener('click', e=>{ if(e.target.id==='w1-cancel'){ w1Edit=null; renderBanner(); } });
+$('w1-save').addEventListener('click', async ()=>{
+  const items = state.skus.map(s=>{ const c=skuCalc(s);
+    return {skuId:s.id,name:s.name,pallets:n(s.pallets),rows:n(s.rows),packs:n(s.packs),bottles:c.bottles,
+      oneC: state.oneC&&has(s.oneC)?n(s.oneC):null, diff:c.diff}; });
+  if(!items.some(i=>i.bottles>0)){ toast('Сначала введите значения'); return; }
+  const date = $('w1-date').value || isoToday();
+  const old = w1Edit && state.w1History.find(x=>x.id===w1Edit);
+  if(old){ Object.assign(old,{date,items,time:old.time,edited:nowTime()}); toast(`Исправлено: ${ruDate(date)}`); }
+  else { state.w1History.unshift({id:uid++,date,time:nowTime(),items}); toast(`Записано за ${ruDate(date)}`); }
+  state.w1History.sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  w1Edit=null; save(); renderBanner();
+  if(await ask('Записано. Очистить поля для следующего пересчёта?','Очистить',{safe:true})){
+    state.skus.forEach(s=>{ s.pallets=s.rows=s.packs=s.oneC=''; }); save(); renderW1();
+  }
+});
+
+// =================== СКЛАД 2 ===================
+let drvOpen = false;
+const fullName = s => state.exps.find(f=>shortName(f)===s) || s;
+function renderDrivers(){
+  const came = new Set(tripsOf(vd()).map(d=>d.name));
+  if(state.w2.driver && !drvOpen){
+    const cnt = tripsOf(vd()).filter(d=>d.name===state.w2.driver).length;
+    $('drivers').className = '';
+    $('drivers').innerHTML = `<div class="chosen"><div>${cnt?`<small>уже приезжал ${dayShort(vd())}: ${cnt}</small>`:''}<b>${esc(state.w2.driver)}</b></div><button class="btn sm" id="drv-change">Сменить</button></div>`;
+    return;
+  }
+  $('drivers').className = 'drivers';
+  $('drivers').innerHTML = state.exps.map(f=>{ const s=shortName(f);
+    return `<button class="drv${state.w2.driver===s?' on':''}" data-d="${esc(s)}" title="${esc(f)}"><span>${esc(s)}</span>${came.has(s)?'<i>✓</i>':''}</button>`; }).join('');
+}
+function renderCalc(){
+  const c=state.w2.calcEmpty;
+  $('calc').innerHTML = c.rows.map((r,i)=>`<div class="cr" data-r="${i}">
+      <input class="in" type="number" inputmode="numeric" min="0" data-c="a" value="${esc(r.a)}" placeholder="0" aria-label="ряд ${i+1}">
+      <span class="x">×</span>
+      <input class="in" type="number" inputmode="numeric" min="0" data-c="b" value="${esc(r.b)}" placeholder="0" aria-label="ряд ${i+1}">
+      <span class="eq" data-eq></span></div>`).join('') + `
+    <div class="lr"><input class="in" type="number" inputmode="numeric" min="0" data-c="loose" value="${esc(c.loose)}" placeholder="0" aria-label="штук отдельно"><span class="t">штук отдельно</span><span></span></div>
+    <div class="foot"><button class="btn sm ghost" id="add-row">+ ряд</button><b id="calc-tot">0</b></div>`;
+  refreshCalc();
+}
+function refreshCalc(){
+  const c=state.w2.calcEmpty;
+  c.rows.forEach((r,i)=>{ const e=document.querySelector(`[data-r="${i}"] [data-eq]`); const v=n(r.a)*n(r.b); e.textContent='= '+v; e.classList.toggle('has',v>0); });
+  $('calc-tot').textContent = fmt(calcTotal(c));
+}
+function renderRet(){
+  const d=state.w2.retDraft, any=Object.values(d).some(v=>n(v)>0);
+  $('ret').innerHTML = state.skus.map(s=>`<div><span class="lab">${esc(s.name)}</span><input class="in" type="number" inputmode="numeric" min="0" data-ret="${s.id}" value="${esc(d[s.id]||'')}" placeholder="0"></div>`).join('');
+  if(any) showRet(true);
+}
+function showRet(on){ $('ret-card').hidden=!on; $('ret-toggle').textContent = on ? 'Скрыть' : 'Добавить'; }
+function updateBar2(){
+  const w=state.w2, e=calcTotal(w.calcEmpty), f=n(w.fullDraft), past=vd()!==isoToday();
+  const r=Object.values(w.retDraft).reduce((a,v)=>a+n(v),0);
+  $('w2-info').innerHTML = `<div class="who${w.driver?'':' need'}">${w.driver?esc(w.driver):'Выберите водителя'}</div>${past?`<span style="color:#b26a00;font-weight:800">${ruDate(vd()).slice(0,5)} · </span>`:''}Пустых <b>${fmt(e)}</b> · Полных <b>${fmt(f)}</b>${r?` · тара ${r} уп.`:''}`;
+}
+let tripEdit=null;
+function renderTrips(){
+  const d=tripsOf(vd());
+  $('trips-count').textContent = d.length ? `${d.length}` : '';
+  if(!d.length){ $('trips').innerHTML='<div class="empty">Пока никого</div>'; return; }
+  $('trips').innerHTML = d.slice().reverse().map(x=>{
+    if(x.id===tripEdit) return `<div class="trip editing" data-t="${x.id}">
+      <div class="g3"><div><span class="lab">Кто</span><input class="in txt" data-e="name" value="${esc(x.name)}"></div>
+        <div><span class="lab">Пустых</span><input class="in" type="number" inputmode="numeric" data-e="empty" value="${esc(x.empty)}"></div>
+        <div><span class="lab">Полных</span><input class="in" type="number" inputmode="numeric" data-e="full" value="${esc(x.full)}"></div></div>
+      <div class="lab" style="text-align:left;margin-top:10px">Мелкая тара, уп.</div>
+      <div class="retg" style="margin-top:4px">${state.skus.map(s=>`<div><span class="lab">${esc(s.name)}</span><input class="in" type="number" inputmode="numeric" data-er="${s.id}" value="${esc((x.ret||{})[s.id]||'')}" placeholder="0"></div>`).join('')}</div>
+      <div class="row" style="margin-top:10px"><button class="btn pri" data-a="save" style="flex:1">Сохранить</button><button class="btn" data-a="cancel">Отмена</button><button class="btn del" data-a="del">Удалить</button></div>
+    </div>`;
+    const rt=retText(x.ret||{});
+    return `<div class="trip" data-t="${x.id}">
+      <div class="w">${esc(x.name)||'—'}<small>${esc(x.time)}${x.edited?' · изм.':''}</small></div>
+      <div class="row" style="gap:10px;flex-wrap:nowrap"><div class="n">${fmt(n(x.empty))} <span>пуст.</span> · ${fmt(n(x.full))} <span>полн.</span></div><span class="go">›</span></div>
+      ${x.fEmpty?`<div class="s">${esc(x.fEmpty)}</div>`:''}
+      ${rt?`<div class="s r">↩ ${esc(rt)}</div>`:''}
+    </div>`;
+  }).join('') + `<div class="sumrow"><span>Всего</span><span>${fmt(d.reduce((a,x)=>a+n(x.empty),0))} пуст. · ${fmt(d.reduce((a,x)=>a+n(x.full),0))} полн.</span></div>`;
+}
+function recalcW2(){
+  const c=w2Calc();
+  $('o-empty').textContent=fmt(c.eExp); $('o-full').textContent=fmt(c.fNow);
+  $('o-empty-d').innerHTML=tag(c.eDiff); $('o-full-d').innerHTML=tag(c.fDiff);
+  $('w2-onec').hidden=!state.oneC;
+}
+function renderW2(){
+  const D=day(); document.querySelectorAll('[data-w2]').forEach(i=>i.value=D[i.dataset.w2]);
+  renderDay();
+  $('full').value=state.w2.fullDraft;
+  renderDrivers(); renderCalc(); renderRet(); renderTrips(); recalcW2(); updateBar2();
+}
+$('v-w2').addEventListener('input', e=>{
+  const t=e.target, w=state.w2;
+  if(t.dataset.w2){ day()[t.dataset.w2]=t.value; save(); recalcW2(); return; }
+  if(t.dataset.c){ if(t.dataset.c==='loose') w.calcEmpty.loose=t.value; else w.calcEmpty.rows[+t.closest('[data-r]').dataset.r][t.dataset.c]=t.value;
+    save(); refreshCalc(); updateBar2(); return; }
+  if(t.id==='full'){ w.fullDraft=t.value; save(); updateBar2(); return; }
+  if(t.dataset.ret){ w.retDraft[t.dataset.ret]=t.value; save(); updateBar2(); return; }
+});
+$('v-w2').addEventListener('click', async e=>{
+  const w=state.w2;
+  const d=e.target.closest('[data-d]');
+  if(d){ w.driver = d.dataset.d; drvOpen = false; save(); renderDrivers(); updateBar2(); return; }
+  if(e.target.id==='drv-change'){ drvOpen = true; renderDrivers(); return; }
+  if(e.target.id==='add-row'){ w.calcEmpty.rows.push({a:'',b:''}); save(); renderCalc(); document.querySelector(`[data-r="${w.calcEmpty.rows.length-1}"] input`).focus(); return; }
+  if(e.target.id==='calc-clear'){ w.calcEmpty=mkCalc(); save(); renderCalc(); updateBar2(); return; }
+  if(e.target.id==='ret-toggle'){ showRet($('ret-card').hidden); return; }
+  const tr=e.target.closest('[data-t]'), a=e.target.closest('[data-a]');
+  if(tr && !a && !tr.classList.contains('editing')){ openTrip(+tr.dataset.t); return; }
+  if(tr && a){
+    const x=w.deliveries.find(q=>q.id==tr.dataset.t); if(!x) return;
+    if(a.dataset.a==='edit'){ tripEdit=x.id; renderTrips(); return; }
+    if(a.dataset.a==='cancel'){ tripEdit=null; renderTrips(); return; }
+    if(a.dataset.a==='del'){ if(await ask(`Удалить приезд «${x.name||'—'}» в ${x.time}?`)){ w.deliveries=w.deliveries.filter(q=>q!==x); tripEdit=null; save(); renderTrips(); renderDrivers(); recalcW2(); } return; }
+    if(a.dataset.a==='save'){
+      tr.querySelectorAll('[data-e]').forEach(i=>x[i.dataset.e]= i.dataset.e==='name'?i.value.trim():i.value);
+      const r={}; tr.querySelectorAll('[data-er]').forEach(i=>{ if(n(i.value)>0) r[i.dataset.er]=String(n(i.value)); });
+      x.ret=r; x.edited=true; x.fEmpty=''; tripEdit=null; save(); renderTrips(); renderDrivers(); recalcW2(); toast('Изменено'); return;
+    }
+  }
+});
+function openTrip(id){
+  const w=state.w2, x=w.deliveries.find(q=>q.id===id); if(!x) return;
+  const same = tripsOf(x.date).filter(q=>q.name===x.name), k = same.indexOf(x)+1;
+  const ret = state.skus.filter(s=>n((x.ret||{})[s.id])>0);
+  $('tbody').innerHTML = `
+    <div class="shead" style="align-items:flex-start"><div><div class="who">${esc(fullName(x.name))}</div>
+      <div class="meta">${esc(dayName(x.date))}, в ${esc(x.time)}${same.length>1?` · ${k}-й раз за день`:''}${x.edited?' · исправлено':''}</div></div>
+      <button class="btn sm" data-tc>Закрыть</button></div>
+    <div class="tnums"><div class="e"><small>Пустые</small><b>${fmt(n(x.empty))}</b></div><div><small>Полные</small><b>${fmt(n(x.full))}</b></div></div>
+    ${x.fEmpty?`<div class="tf">${esc(x.fEmpty)}</div>`:''}
+    ${ret.length?`<div class="tret"><div class="h">Мелкая тара на склад 1</div>${ret.map(s=>`<div class="l">${esc(s.name)}<b>${n(x.ret[s.id])} уп. <span>= ${n(x.ret[s.id])*n(s.bpp)} бут.</span></b></div>`).join('')}</div>`:''}
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-te style="flex:1">✎ Изменить</button><button class="btn del" data-td>Удалить</button></div>`;
+  $('tsheet').hidden=false; $('tsheet').dataset.id=id;
+}
+function closeTrip(){ $('tsheet').hidden=true; }
+$('tsheet').addEventListener('click', async e=>{
+  const id=+$('tsheet').dataset.id, w=state.w2, x=w.deliveries.find(q=>q.id===id);
+  if(e.target.id==='tsheet' || e.target.closest('[data-tc]')){ closeTrip(); return; }
+  if(e.target.closest('[data-te]')){ closeTrip(); tripEdit=id; renderTrips(); const el=document.querySelector(`[data-t="${id}"]`); if(el) el.scrollIntoView({block:'center'}); return; }
+  if(e.target.closest('[data-td]') && x){
+    closeTrip();
+    if(await ask(`Удалить приезд «${x.name||'—'}» в ${x.time}?`)){ w.deliveries=w.deliveries.filter(q=>q!==x); save(); renderTrips(); renderDrivers(); recalcW2(); }
+  }
+});
+function renderDay(){
+  const v=vd(), t=isoToday();
+  $('day-label').textContent = (v===t?'Сегодня, ':v===addDays(t,-1)?'Вчера, ':'') + dayName(v);
+  $('day-next').disabled = v>=t; $('day-next').style.opacity = v>=t ? .3 : 1;
+  $('day-past').innerHTML = v!==t ? `<div class="past"><span>Записи пойдут на ${esc(dayName(v))}</span><button class="btn sm" id="day-today">К сегодня</button></div>` : '';
+  $('trips-title').textContent = v===t ? 'Сегодня приехали' : `Приехали ${dayName(v)}`;
+  $('bal-title').textContent = v===t ? 'Остатки 18,9 л' : `Остатки 18,9 л на ${dayName(v)}`;
+}
+function setDay(v){ if(v>isoToday()) v=isoToday(); state.w2.viewDate=v; tripEdit=null; drvOpen=false; save(); renderW2(); }
+$('day-prev').addEventListener('click', ()=>setDay(addDays(vd(),-1)));
+$('day-next').addEventListener('click', ()=>setDay(addDays(vd(),1)));
+$('day-cur').addEventListener('click', ()=>openCal(vd(), setDay, new Set(state.w2.deliveries.map(x=>x.date)), 'Дата приёма'));
+$('day-past').addEventListener('click', e=>{ if(e.target.id==='day-today') setDay(isoToday()); });
+
+$('w2-save').addEventListener('click', ()=>{
+  const w=state.w2;
+  if(!w.driver){ toast('Выберите водителя'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+  const empty=calcTotal(w.calcEmpty), full=n(w.fullDraft);
+  const ret={}; Object.keys(w.retDraft).forEach(k=>{ if(n(w.retDraft[k])>0) ret[k]=String(n(w.retDraft[k])); });
+  if(!empty && !full && !Object.keys(ret).length){ toast('Введите пустые или полные'); return; }
+  w.deliveries.push({id:uid++, date:vd(), time:vd()===isoToday()?nowTime():'—', name:w.driver, empty:String(empty), full:String(full), ret, fEmpty:calcFormula(w.calcEmpty)});
+  const who=w.driver;
+  w.calcEmpty=mkCalc(); w.fullDraft=''; w.retDraft={}; w.driver=''; drvOpen=false;
+  save(); showRet(false); renderW2(); toast(`Записано: ${who}`); window.scrollTo({top:0,behavior:'smooth'});
+});
+
+// =================== КАЛЕНДАРЬ ===================
+let cal = null; // {sel, y, m, onPick, marks}
+function openCal(sel, onPick, marks=new Set(), title='Выберите дату'){
+  const [y,m]=sel.split('-').map(Number);
+  cal={sel, y, m:m-1, onPick, marks}; $('cal-title').textContent=title; drawCal(); $('csheet').hidden=false;
+}
+function drawCal(){
+  const {y,m,sel,marks}=cal, t=isoToday();
+  $('cal-month').textContent = new Date(y,m,1).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}).replace(/\s*г\.?$/,'');
+  const first=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate();
+  let h=''; for(let i=0;i<first;i++) h+='<button class="out" tabindex="-1"></button>';
+  for(let d=1; d<=days; d++){ const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    h+=`<button data-day="${iso}" class="${iso===sel?'sel':''}${iso===t?' today':''}${iso>t?' fut':''}"${iso>t?' disabled':''}>${d}${marks.has(iso)?'<i></i>':''}</button>`; }
+  $('cal-grid').innerHTML=h;
+  const nm = new Date(y,m+1,1); $('cal-next').style.visibility = `${nm.getFullYear()}-${String(nm.getMonth()+1).padStart(2,'0')}-01` > t ? 'hidden' : 'visible';
+}
+function pickCal(iso){ $('csheet').hidden=true; const f=cal.onPick; cal=null; f(iso); }
+$('cal-prev').addEventListener('click', ()=>{ cal.m--; if(cal.m<0){cal.m=11;cal.y--;} drawCal(); });
+$('cal-next').addEventListener('click', ()=>{ cal.m++; if(cal.m>11){cal.m=0;cal.y++;} drawCal(); });
+$('cal-grid').addEventListener('click', e=>{ const b=e.target.closest('[data-day]'); if(b && !b.disabled) pickCal(b.dataset.day); });
+$('cal-today').addEventListener('click', ()=>pickCal(isoToday()));
+$('cal-yest').addEventListener('click', ()=>pickCal(addDays(isoToday(),-1)));
+$('cal-close').addEventListener('click', ()=>{ $('csheet').hidden=true; cal=null; });
+$('csheet').addEventListener('click', e=>{ if(e.target.id==='csheet'){ $('csheet').hidden=true; cal=null; } });
+
+// дата склада 1 — тот же календарь
+function setW1Date(v){ $('w1-date').value=v; $('w1-date-btn').querySelector('span').textContent = v===isoToday()?'Сегодня':ruDate(v); }
+$('w1-date-btn').addEventListener('click', ()=>openCal($('w1-date').value||isoToday(), setW1Date, new Set(state.w1History.map(h=>h.date)), 'Дата пересчёта'));
+
+// =================== ИСТОРИЯ ===================
+let hMode='w1', hAll=false;
+function summaryText(){
+  const L=[`СМЕНА ${ruDate(vd())}${vd()===isoToday()?' '+nowTime():''}`,'','СКЛАД 1:'];
+  let any=false;
+  state.skus.forEach(s=>{ const c=skuCalc(s), r=retToday(s.id); if(!c.bottles && !r && c.diff===null) return; any=true;
+    L.push(`${s.name}: ${n(s.pallets)}п ${n(s.rows)}р ${n(s.packs)}у = ${c.bottles} бут.${c.diff===null?'':c.diff===0?' ✓1С':' ⚠1С '+sign(c.diff)}${r?` (возврат +${r} уп.)`:''}`); });
+  if(!any) L.push('— не заполнен');
+  const c=w2Calc(), w=day(), T=tripsOf(vd());
+  L.push('','СКЛАД 2 (18,9 л):',
+    `Пустых должно быть: ${c.eExp} (утро ${n(w.emptyOpen)} + привезли ${c.eIn})${c.eDiff===null?'':c.eDiff===0?' ✓1С':' ⚠1С '+sign(c.eDiff)}`,
+    `Полных сейчас: ${c.fNow} (утро ${n(w.fullOpen)} + привезли ${c.fIn} − отгружено ${n(w.fullShipped)})${c.fDiff===null?'':c.fDiff===0?' ✓1С':' ⚠1С '+sign(c.fDiff)}`);
+  if(T.length){ L.push('','Приезды:'); T.forEach(x=>{ const rt=retText(x.ret||{}); L.push(`${x.time} ${x.name||'—'}: пуст. ${n(x.empty)}, полн. ${n(x.full)}${rt?'; тара: '+rt:''}`); }); }
+  return L.join('\n');
+}
+function renderHist(){
+  document.querySelectorAll('#h-mode button').forEach(b=>b.classList.toggle('on',b.dataset.h===hMode));
+  $('h-w1').hidden = hMode!=='w1'; $('h-shift').hidden = hMode!=='shift';
+  if(hMode==='w1'){
+    const H=state.w1History, list=hAll?H:H.slice(0,5);
+    $('h-w1').innerHTML = !H.length ? '<div class="empty">Записанных пересчётов пока нет</div>' :
+      list.map(h=>{ const bad=h.items.filter(i=>i.diff).length, items=h.items.filter(i=>i.bottles||i.oneC!==null);
+        return `<div class="card h"><div class="hh"><b>${ruDate(h.date)}</b><span class="muted" style="font-size:14px">${esc(h.time)}${h.edited?' · испр.':''}${bad?` · <span style="color:var(--bad);font-weight:800">⚠ ${bad}</span>`:''}</span></div>
+          <table><tr><th>Товар</th><th class="r">П / Р / У</th><th class="r">Бутылок</th>${items.some(i=>i.oneC!==null)?'<th class="r">1С</th>':''}</tr>
+          ${items.map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${i.pallets} / ${i.rows} / ${i.packs}</td><td class="r b">${fmt(i.bottles)}</td>${items.some(q=>q.oneC!==null)?`<td class="r ${i.diff===null?'':i.diff?'bad':'ok'}">${i.diff===null?'—':i.diff?sign(i.diff):'✓'}</td>`:''}</tr>`).join('')}</table>
+          <div class="row" style="margin-top:10px"><button class="btn sm ghost" data-fix="${h.id}">✎ Исправить</button><button class="btn sm del" data-hdel="${h.id}">Удалить</button></div></div>`; }).join('')
+      + (H.length>5?`<button class="btn ghost full" id="h-all">${hAll?'Свернуть':'Показать все ('+H.length+')'}</button>`:'');
+  } else {
+    $('sum').textContent=summaryText();
+    $('cur-shift').textContent = 'Смена: ' + dayShort(vd());
+    const S=state.history, list=hAll?S:S.slice(0,5);
+    $('shifts').innerHTML = (S.length?'<div class="sec"><span>Закрытые смены</span></div>':'') +
+      list.map((x,i)=>`<div class="card h"><div class="hh"><b>${esc(x.title)}</b><button class="btn sm del" data-sdel="${i}">Удалить</button></div><pre class="sum">${esc(x.text)}</pre></div>`).join('')
+      + (S.length>5?`<button class="btn ghost full" id="h-all">${hAll?'Свернуть':'Показать все ('+S.length+')'}</button>`:'');
+  }
+}
+$('h-mode').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; hMode=b.dataset.h; hAll=false; renderHist(); });
+$('v-hist').addEventListener('click', async e=>{
+  if(e.target.id==='h-all'){ hAll=!hAll; renderHist(); return; }
+  const fx=e.target.closest('[data-fix]');
+  if(fx){ const h=state.w1History.find(x=>x.id==fx.dataset.fix); if(!h) return;
+    if(!await ask(`Открыть пересчёт за ${ruDate(h.date)} для исправления? Текущий ввод на складе 1 заменится.`,'Открыть',{safe:true})) return;
+    h.items.forEach(i=>{ const s=state.skus.find(x=>x.id==i.skuId)||state.skus.find(x=>x.name===i.name); if(!s) return;
+      s.pallets=i.pallets||''; s.rows=i.rows||''; s.packs=i.packs||''; s.oneC=i.oneC??''; });
+    if(h.items.some(i=>i.oneC!==null)) state.oneC=true;
+    setW1Date(h.date); w1Edit=h.id; save(); go('w1'); return; }
+  const hd=e.target.closest('[data-hdel]');
+  if(hd){ if(await ask('Удалить этот пересчёт?')){ state.w1History=state.w1History.filter(x=>x.id!=hd.dataset.hdel); if(w1Edit==hd.dataset.hdel) w1Edit=null; save(); renderHist(); } return; }
+  const sd=e.target.closest('[data-sdel]');
+  if(sd){ if(await ask('Удалить эту смену?')){ state.history.splice(+sd.dataset.sdel,1); save(); renderHist(); } return; }
+});
+$('copy').addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(summaryText()); toast('Скопировано'); }
+  catch(e){ const r=document.createRange(); r.selectNodeContents($('sum')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast('Текст выделен — скопируйте'); }
+});
+$('close-shift').addEventListener('click', async ()=>{
+  const v=vd(), next=addDays(v,1);
+  if(!await ask(`Закрыть смену за ${dayName(v)}? Остатки 18,9 л перенесутся на утро ${dayName(next)}.`,'Закрыть смену',{safe:true})) return;
+  const c=w2Calc();
+  state.history.unshift({title:`${ruDate(v)}${v===isoToday()?' · '+nowTime():''}`, text:summaryText()});
+  state.history=state.history.slice(0,120);
+  const N=day(next); N.emptyOpen=String(c.eExp); N.fullOpen=String(c.fNow);
+  // старше 120 дней — убрать, чтобы телефон не забивался
+  const lim=addDays(isoToday(),-120);
+  state.w2.deliveries=state.w2.deliveries.filter(x=>x.date>=lim);
+  Object.keys(state.w2.days).forEach(k=>{ if(k<lim) delete state.w2.days[k]; });
+  tripEdit=null; save(); renderHist(); toast(`Остатки перенесены на ${ruDate(next)}`);
+});
+
+// =================== НАСТРОЙКИ ===================
+function renderSet(){
+  $('skus').innerHTML = state.skus.map(s=>`<div class="card" data-s="${s.id}">
+    <input class="in txt" data-f="name" value="${esc(s.name)}" aria-label="Название" style="margin-bottom:8px">
+    <div class="g3" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end">
+      <div><span class="lab">Уп. в ряду</span><input class="in" type="number" inputmode="numeric" data-f="ppr" value="${esc(s.ppr)}"></div>
+      <div><span class="lab">Рядов</span><input class="in" type="number" inputmode="numeric" data-f="rpp" value="${esc(s.rpp)}"></div>
+      <div><span class="lab">Бут. в уп.</span><input class="in" type="number" inputmode="numeric" data-f="bpp" value="${esc(s.bpp)}"></div>
+      <button class="btn del" data-sx style="height:50px;padding:0 14px" aria-label="Удалить товар">✕</button>
+    </div></div>`).join('');
+  $('exps').value = state.exps.join('\n');
+}
+$('skus').addEventListener('input', e=>{ const c=e.target.closest('[data-s]'); if(!c||!e.target.dataset.f) return;
+  state.skus.find(x=>x.id==c.dataset.s)[e.target.dataset.f]=e.target.value; save(); });
+$('skus').addEventListener('click', async e=>{ if(!e.target.closest('[data-sx]')) return; const c=e.target.closest('[data-s]'), s=state.skus.find(x=>x.id==c.dataset.s);
+  if(await ask(`Удалить товар «${s.name}»?`)){ state.skus=state.skus.filter(x=>x!==s); save(); renderSet(); } });
+$('add-sku').addEventListener('click', ()=>{ state.skus.push(mkSku({name:'Новый товар',ppr:10,rpp:5,bpp:6})); save(); renderSet();
+  const i=document.querySelector('#skus .card:last-child input'); i.focus(); i.select(); });
+$('exps').addEventListener('input', e=>{ state.exps=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean); save(); });
+$('export').addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(state)); toast('Копия скопирована'); }catch(e){ toast('Не удалось скопировать'); } });
+$('import').addEventListener('click', async ()=>{ const raw=await ask('Вставьте текст резервной копии:','Восстановить',{input:true,safe:true}); if(!raw) return;
+  try{ const s=JSON.parse(raw); if(!s.skus||!s.w2) throw 0; localStorage.setItem(KEY,JSON.stringify(s)); location.reload(); }catch(e){ toast('Это не похоже на копию'); } });
+$('reset').addEventListener('click', async ()=>{ if(await ask('Удалить ВСЕ данные? Это нельзя отменить.','Сбросить всё')){ try{localStorage.removeItem(KEY);}catch(e){} location.reload(); } });
+
+// =================== НАВИГАЦИЯ ===================
+function go(v){
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  ['w1','w2','hist','set'].forEach(k=>$('v-'+k).hidden = k!==v);
+  $('bar-w1').hidden = v!=='w1'; $('bar-w2').hidden = v!=='w2';
+  document.body.classList.toggle('nobar', v!=='w1' && v!=='w2');
+  if(v==='w1') renderW1(); if(v==='w2') renderW2(); if(v==='hist') renderHist(); if(v==='set') renderSet();
+  window.scrollTo(0,0);
+  try{ localStorage.setItem(KEY+'-tab', v); }catch(e){}
+}
+$('nav').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) go(b.dataset.v); });
+
+// кнопка «Назад» в Android: закрыть открытое окно или вернуться на склад 1
+window.appBack = function(){
+  if(!$('modal').hidden){ $('m-no').click(); return true; }
+  if(!$('sheet').hidden){ closePick(); return true; }
+  if(!$('tsheet').hidden){ closeTrip(); return true; }
+  if(!$('csheet').hidden){ $('csheet').hidden=true; cal=null; return true; }
+  if($('v-w1').hidden){ go('w1'); return true; }
+  return false;
+};
+load(); save();
+const today = new Date().toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'});
+$('d1').textContent=today;
+let startTab='w1'; try{ startTab=localStorage.getItem(KEY+'-tab')||'w1'; }catch(e){}
+go(['w1','w2','hist','set'].includes(startTab)?startTab:'w1');
+</script>
+</body>
+</html>

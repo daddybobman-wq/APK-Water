@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- капля -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M54,28 C54,28 36,49 36,61 A18,18 0 0,0 72,61 C72,49 54,28 54,28 Z" />
+    <!-- блик -->
+    <path android:fillColor="#0B5F8A" android:fillAlpha="0.35"
+        android:pathData="M46,62 A8,8 0 0,0 54,70 L54,73 A11,11 0 0,1 43,62 Z" />
+</vector>
